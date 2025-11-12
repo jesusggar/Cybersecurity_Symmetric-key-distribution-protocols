@@ -53,6 +53,19 @@ t_nb = bytearray.fromhex(t_nb)
 ##########################################
 
 # (A realizar por el alumno/a...)
+msg_TB = []
+msg_TB.append(K1.hex())
+msg_TB.append(K2.hex())
+msg_TB.append(t_nb.hex())
+msg_TB_json = json.dumps(msg_TB)
+print("T->B (descifrado): " + msg_TB_json)
+
+aes_engine = funciones_aes.iniciarAES_GCM(KBT)
+cifrado_TB, cifrado_mac_TB, cifrado_nonce_TB = funciones_aes.cifrarAES_GCM(aes_engine,msg_TB_json.encode("utf-8"))
+
+socket_Bob.enviar(cifrado_TB)
+socket_Bob.enviar(cifrado_mac_TB)
+socket_Bob.enviar(cifrado_nonce_TB)
 
 # Cerramos el socket entre B y T, no lo utilizaremos mas
 socket_Bob.cerrar() 
@@ -61,8 +74,45 @@ socket_Bob.cerrar()
 #########################################
 
 # (A realizar por el alumno/a...)
+# Crear el socket de escucha de Alice (5550)
+print("Esperando a Alice...")
+socket_Alice = SOCKET_SIMPLE_TCP('127.0.0.1', 5550)
+socket_Alice.escuchar()
+
+# Recibe el mensaje
+cifrado = socket_Alice.recibir()
+cifrado_mac = socket_Alice.recibir()
+cifrado_nonce = socket_Alice.recibir()
+
+# Descifro los datos con AES GCM
+datos_descifrado_ET = funciones_aes.descifrarAES_GCM(KAT, cifrado_nonce, cifrado, cifrado_mac)
+
+# Decodifica el contenido: Alice, Nb
+json_ET = datos_descifrado_ET.decode("utf-8" ,"ignore")
+print("A->T (descifrado): " + json_ET)
+msg_ET = json.loads(json_ET)
+
+# Extraigo el contenido
+t_alice, t_na = msg_ET
+t_na = bytearray.fromhex(t_na)
 
 # Paso 4) T->A: KAT(K1, K2, Na) en AES-GCM
 ##########################################
 
 # (A realizar por el alumno/a...)
+msg_TA = []
+msg_TA.append(K1.hex())
+msg_TA.append(K2.hex())
+msg_TA.append(t_na.hex())
+msg_TA_json = json.dumps(msg_TA)
+print("T -> A (descifrado): " + msg_TA_json)
+
+aes_engine = funciones_aes.iniciarAES_GCM(KAT)
+cifrado_TA, cifrado_mac_TA, cifrado_nonce_TA = funciones_aes.cifrarAES_GCM(aes_engine,msg_TA_json.encode("utf-8"))
+
+socket_Alice.enviar(cifrado_TA)
+socket_Alice.enviar(cifrado_mac_TA)
+socket_Alice.enviar(cifrado_nonce_TA)
+
+# Cerramos el socket entre A y T, no lo utilizaremos mas
+socket_Alice.cerrar() 
